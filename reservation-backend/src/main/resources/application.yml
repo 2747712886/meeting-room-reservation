@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: reservation-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/meeting_room_reservation?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: reservation
+    password: reservation
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: reservation
+    password: reservation
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+knife4j:
+  enable: true
+

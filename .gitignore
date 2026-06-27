@@ -1,0 +1,30 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+.vs/
+*.iml
+
+# Java
+target/
+*.class
+*.log
+
+# Maven wrapper generated files
+.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
