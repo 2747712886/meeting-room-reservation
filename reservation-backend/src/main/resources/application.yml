@@ -6,9 +6,14 @@ spring:
     name: reservation-backend
   datasource:
     url: jdbc:mysql://localhost:3307/meeting_room_reservation?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: admin
-    password: 123456
+    username: reservation
+    password: reservation
     driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
   data:
     redis:
       host: localhost
@@ -16,8 +21,8 @@ spring:
   rabbitmq:
     host: localhost
     port: 5672
-    username: reservation
-    password: reservation
+    username: admin
+    password: 123456
 
 mybatis-plus:
   configuration:
