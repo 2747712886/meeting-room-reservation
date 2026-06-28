@@ -41,7 +41,7 @@ public class DefaultDataInitializer implements CommandLineRunner {
             admin = new SysUser();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode("123456"));
-            admin.setRealName("System Admin");
+            admin.setRealName("系统管理员");
             admin.setEmail("admin@example.com");
             admin.setEnabled(true);
             admin.setCreatedAt(now);
@@ -69,4 +69,3 @@ public class DefaultDataInitializer implements CommandLineRunner {
         }
     }
 }
-
