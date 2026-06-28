@@ -5,7 +5,7 @@ spring:
   application:
     name: reservation-backend
   datasource:
-    url: jdbc:mysql://localhost:3306/meeting_room_reservation?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3307/meeting_room_reservation?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: reservation
     password: reservation
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -32,4 +32,3 @@ springdoc:
 
 knife4j:
   enable: true
-
