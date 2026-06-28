@@ -11,11 +11,13 @@ import com.example.reservation.common.ErrorCode;
 import com.example.reservation.domain.entity.Appointment;
 import com.example.reservation.domain.entity.AppointmentLog;
 import com.example.reservation.domain.entity.MeetingRoom;
+import com.example.reservation.domain.entity.Notification;
 import com.example.reservation.domain.enums.AppointmentStatus;
 import com.example.reservation.exception.BusinessException;
 import com.example.reservation.mapper.AppointmentLogMapper;
 import com.example.reservation.mapper.AppointmentMapper;
 import com.example.reservation.mapper.MeetingRoomMapper;
+import com.example.reservation.mapper.NotificationMapper;
 import com.example.reservation.meetingroom.dto.PageResponse;
 import com.example.reservation.security.JwtUser;
 import java.time.LocalDateTime;
@@ -36,16 +38,19 @@ public class AppointmentService {
     private final AppointmentMapper appointmentMapper;
     private final AppointmentLogMapper appointmentLogMapper;
     private final MeetingRoomMapper meetingRoomMapper;
+    private final NotificationMapper notificationMapper;
     private final RedissonClient redissonClient;
 
     public AppointmentService(
             AppointmentMapper appointmentMapper,
             AppointmentLogMapper appointmentLogMapper,
             MeetingRoomMapper meetingRoomMapper,
+            NotificationMapper notificationMapper,
             RedissonClient redissonClient) {
         this.appointmentMapper = appointmentMapper;
         this.appointmentLogMapper = appointmentLogMapper;
         this.meetingRoomMapper = meetingRoomMapper;
+        this.notificationMapper = notificationMapper;
         this.redissonClient = redissonClient;
     }
 
@@ -145,6 +150,11 @@ public class AppointmentService {
                 AppointmentStatus.APPROVED,
                 currentUser.userId(),
                 "approve appointment");
+        createNotification(
+                appointment,
+                "APPOINTMENT_APPROVED",
+                "Appointment approved",
+                "Your appointment has been approved: " + appointment.getSubject());
         return AppointmentResponse.from(appointment);
     }
 
@@ -162,6 +172,11 @@ public class AppointmentService {
                 AppointmentStatus.REJECTED,
                 currentUser.userId(),
                 request.rejectReason());
+        createNotification(
+                appointment,
+                "APPOINTMENT_REJECTED",
+                "Appointment rejected",
+                "Your appointment has been rejected: " + request.rejectReason());
         return AppointmentResponse.from(appointment);
     }
 
@@ -179,6 +194,11 @@ public class AppointmentService {
         appointment.setUpdatedAt(LocalDateTime.now());
         appointmentMapper.updateById(appointment);
         createStatusLog(appointment, oldStatus, AppointmentStatus.CANCELLED, currentUser.userId(), request.cancelReason());
+        createNotification(
+                appointment,
+                "APPOINTMENT_CANCELLED",
+                "Appointment cancelled",
+                "Your appointment has been cancelled: " + appointment.getSubject());
     }
 
     private Appointment findById(Long id) {
@@ -239,6 +259,20 @@ public class AppointmentService {
         log.setCreatedAt(now);
         log.setUpdatedAt(now);
         appointmentLogMapper.insert(log);
+    }
+
+    private void createNotification(Appointment appointment, String eventType, String title, String content) {
+        LocalDateTime now = LocalDateTime.now();
+        Notification notification = new Notification();
+        notification.setUserId(appointment.getUserId());
+        notification.setAppointmentId(appointment.getId());
+        notification.setEventType(eventType);
+        notification.setTitle(title);
+        notification.setContent(content);
+        notification.setReadFlag(false);
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        notificationMapper.insert(notification);
     }
 
     private boolean hasRole(JwtUser currentUser, String role) {
