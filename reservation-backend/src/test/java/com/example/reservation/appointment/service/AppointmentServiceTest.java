@@ -14,13 +14,13 @@ import com.example.reservation.common.ErrorCode;
 import com.example.reservation.domain.entity.Appointment;
 import com.example.reservation.domain.entity.AppointmentLog;
 import com.example.reservation.domain.entity.MeetingRoom;
-import com.example.reservation.domain.entity.Notification;
 import com.example.reservation.domain.enums.AppointmentStatus;
 import com.example.reservation.exception.BusinessException;
 import com.example.reservation.mapper.AppointmentLogMapper;
 import com.example.reservation.mapper.AppointmentMapper;
 import com.example.reservation.mapper.MeetingRoomMapper;
-import com.example.reservation.mapper.NotificationMapper;
+import com.example.reservation.notification.mq.NotificationMessage;
+import com.example.reservation.notification.mq.NotificationPublisher;
 import com.example.reservation.security.JwtUser;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,7 +46,7 @@ class AppointmentServiceTest {
     private MeetingRoomMapper meetingRoomMapper;
 
     @Mock
-    private NotificationMapper notificationMapper;
+    private NotificationPublisher notificationPublisher;
 
     @Mock
     private RedissonClient redissonClient;
@@ -77,7 +77,7 @@ class AppointmentServiceTest {
         verify(appointmentMapper).selectCount(any());
         verify(appointmentMapper).insert(any(Appointment.class));
         verify(appointmentLogMapper).insert(any(AppointmentLog.class));
-        verify(notificationMapper, never()).insert(any(Notification.class));
+        verify(notificationPublisher, never()).publish(any(NotificationMessage.class));
         verify(lock).unlock();
     }
 
@@ -104,7 +104,7 @@ class AppointmentServiceTest {
         verify(appointmentMapper, never()).selectCount(any());
         verify(appointmentMapper, never()).insert(any(Appointment.class));
         verify(appointmentLogMapper, never()).insert(any(AppointmentLog.class));
-        verify(notificationMapper, never()).insert(any(Notification.class));
+        verify(notificationPublisher, never()).publish(any(NotificationMessage.class));
         verify(lock, never()).unlock();
     }
 
@@ -133,7 +133,7 @@ class AppointmentServiceTest {
         verify(appointmentMapper, never()).selectCount(any());
         verify(appointmentMapper, never()).insert(any(Appointment.class));
         verify(appointmentLogMapper, never()).insert(any(AppointmentLog.class));
-        verify(notificationMapper, never()).insert(any(Notification.class));
+        verify(notificationPublisher, never()).publish(any(NotificationMessage.class));
     }
 
     @Test
@@ -150,7 +150,7 @@ class AppointmentServiceTest {
         assertThat(appointment.getCancelReason()).isNull();
         verify(appointmentMapper).updateById(appointment);
         verify(appointmentLogMapper).insert(any(AppointmentLog.class));
-        verify(notificationMapper).insert(any(Notification.class));
+        verify(notificationPublisher).publish(any(NotificationMessage.class));
     }
 
     @Test
@@ -168,7 +168,7 @@ class AppointmentServiceTest {
         assertThat(appointment.getStatus()).isEqualTo(AppointmentStatus.PENDING);
         verify(appointmentMapper, never()).updateById(any(Appointment.class));
         verify(appointmentLogMapper, never()).insert(any(AppointmentLog.class));
-        verify(notificationMapper, never()).insert(any(Notification.class));
+        verify(notificationPublisher, never()).publish(any(NotificationMessage.class));
     }
 
     @Test
@@ -183,7 +183,7 @@ class AppointmentServiceTest {
         assertThat(appointment.getRejectReason()).isEqualTo("time unavailable");
         verify(appointmentMapper).updateById(appointment);
         verify(appointmentLogMapper).insert(any(AppointmentLog.class));
-        verify(notificationMapper).insert(any(Notification.class));
+        verify(notificationPublisher).publish(any(NotificationMessage.class));
     }
 
     @Test
@@ -200,7 +200,7 @@ class AppointmentServiceTest {
 
         verify(appointmentMapper, never()).updateById(any(Appointment.class));
         verify(appointmentLogMapper, never()).insert(any(AppointmentLog.class));
-        verify(notificationMapper, never()).insert(any(Notification.class));
+        verify(notificationPublisher, never()).publish(any(NotificationMessage.class));
     }
 
     @Test
@@ -215,7 +215,7 @@ class AppointmentServiceTest {
         assertThat(appointment.getCancelReason()).isEqualTo("no longer needed");
         verify(appointmentMapper).updateById(appointment);
         verify(appointmentLogMapper).insert(any(AppointmentLog.class));
-        verify(notificationMapper).insert(any(Notification.class));
+        verify(notificationPublisher).publish(any(NotificationMessage.class));
     }
 
     private AppointmentService service() {
@@ -223,7 +223,7 @@ class AppointmentServiceTest {
                 appointmentMapper,
                 appointmentLogMapper,
                 meetingRoomMapper,
-                notificationMapper,
+                notificationPublisher,
                 redissonClient);
     }
 

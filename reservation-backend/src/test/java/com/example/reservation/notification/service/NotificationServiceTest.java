@@ -12,6 +12,7 @@ import com.example.reservation.common.ErrorCode;
 import com.example.reservation.domain.entity.Notification;
 import com.example.reservation.exception.BusinessException;
 import com.example.reservation.mapper.NotificationMapper;
+import com.example.reservation.notification.mq.NotificationMessage;
 import com.example.reservation.security.JwtUser;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,20 @@ class NotificationServiceTest {
 
     @Mock
     private NotificationMapper notificationMapper;
+
+    @Test
+    void createStoresUnreadNotificationFromMessage() {
+        NotificationService service = new NotificationService(notificationMapper);
+
+        service.create(new NotificationMessage(
+                1L,
+                100L,
+                "APPOINTMENT_APPROVED",
+                "Appointment approved",
+                "Your appointment has been approved"));
+
+        verify(notificationMapper).insert(any(Notification.class));
+    }
 
     @Test
     void markReadUpdatesUnreadOwnedNotification() {

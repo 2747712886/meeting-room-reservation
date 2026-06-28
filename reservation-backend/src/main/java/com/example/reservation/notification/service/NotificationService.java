@@ -10,6 +10,7 @@ import com.example.reservation.mapper.NotificationMapper;
 import com.example.reservation.meetingroom.dto.PageResponse;
 import com.example.reservation.notification.dto.NotificationQueryRequest;
 import com.example.reservation.notification.dto.NotificationResponse;
+import com.example.reservation.notification.mq.NotificationMessage;
 import com.example.reservation.security.JwtUser;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +38,21 @@ public class NotificationService {
                 .map(NotificationResponse::from)
                 .toList();
         return PageResponse.from(result, records);
+    }
+
+    @Transactional
+    public void create(NotificationMessage message) {
+        LocalDateTime now = LocalDateTime.now();
+        Notification notification = new Notification();
+        notification.setUserId(message.userId());
+        notification.setAppointmentId(message.appointmentId());
+        notification.setEventType(message.eventType());
+        notification.setTitle(message.title());
+        notification.setContent(message.content());
+        notification.setReadFlag(false);
+        notification.setCreatedAt(now);
+        notification.setUpdatedAt(now);
+        notificationMapper.insert(notification);
     }
 
     @Transactional
