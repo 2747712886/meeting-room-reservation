@@ -17,6 +17,9 @@ import com.example.reservation.meetingroom.dto.PageResponse;
 import com.example.reservation.security.JwtUser;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +27,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AppointmentService {
 
+    private static final long APPOINTMENT_LOCK_WAIT_SECONDS = 3;
+    private static final long APPOINTMENT_LOCK_LEASE_SECONDS = 10;
+
     private final AppointmentMapper appointmentMapper;
     private final MeetingRoomMapper meetingRoomMapper;
+    private final RedissonClient redissonClient;
 
-    public AppointmentService(AppointmentMapper appointmentMapper, MeetingRoomMapper meetingRoomMapper) {
+    public AppointmentService(
+            AppointmentMapper appointmentMapper,
+            MeetingRoomMapper meetingRoomMapper,
+            RedissonClient redissonClient) {
         this.appointmentMapper = appointmentMapper;
         this.meetingRoomMapper = meetingRoomMapper;
+        this.redissonClient = redissonClient;
     }
 
     @Transactional
@@ -39,8 +50,31 @@ public class AppointmentService {
         if (room == null || !Boolean.TRUE.equals(room.getEnabled())) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "meeting room not found or disabled");
         }
-        ensureNoTimeConflict(request.roomId(), request.startTime(), request.endTime());
 
+        String lockKey = buildAppointmentLockKey(request.roomId(), request.startTime());
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean locked = false;
+        try {
+            locked = lock.tryLock(
+                    APPOINTMENT_LOCK_WAIT_SECONDS,
+                    APPOINTMENT_LOCK_LEASE_SECONDS,
+                    TimeUnit.SECONDS);
+            if (!locked) {
+                throw new BusinessException(ErrorCode.CONFLICT, "appointment creation is busy, please retry");
+            }
+            return createWithLock(request, currentUser);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "appointment creation was interrupted");
+        } finally {
+            if (locked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    private AppointmentResponse createWithLock(AppointmentCreateRequest request, JwtUser currentUser) {
+        ensureNoTimeConflict(request.roomId(), request.startTime(), request.endTime());
         LocalDateTime now = LocalDateTime.now();
         Appointment appointment = new Appointment();
         appointment.setUserId(currentUser.userId());
@@ -53,6 +87,10 @@ public class AppointmentService {
         appointment.setUpdatedAt(now);
         appointmentMapper.insert(appointment);
         return AppointmentResponse.from(appointment);
+    }
+
+    private String buildAppointmentLockKey(Long roomId, LocalDateTime startTime) {
+        return "lock:appointment:room:%d:%s".formatted(roomId, startTime.toLocalDate());
     }
 
     public PageResponse<AppointmentResponse> page(AppointmentQueryRequest request, JwtUser currentUser) {
