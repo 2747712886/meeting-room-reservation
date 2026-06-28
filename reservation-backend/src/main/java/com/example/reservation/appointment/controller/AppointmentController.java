@@ -66,16 +66,20 @@ public class AppointmentController {
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<AppointmentResponse> approve(@PathVariable Long id) {
-        return ApiResponse.success(appointmentService.approve(id));
+    public ApiResponse<AppointmentResponse> approve(
+            @PathVariable Long id,
+            @AuthenticationPrincipal JwtUser currentUser
+    ) {
+        return ApiResponse.success(appointmentService.approve(id, currentUser));
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AppointmentResponse> reject(
             @PathVariable Long id,
-            @Valid @RequestBody AppointmentRejectRequest request
+            @Valid @RequestBody AppointmentRejectRequest request,
+            @AuthenticationPrincipal JwtUser currentUser
     ) {
-        return ApiResponse.success(appointmentService.reject(id, request));
+        return ApiResponse.success(appointmentService.reject(id, request, currentUser));
     }
 }

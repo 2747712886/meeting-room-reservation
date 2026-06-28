@@ -9,9 +9,11 @@ import com.example.reservation.appointment.dto.AppointmentRejectRequest;
 import com.example.reservation.appointment.dto.AppointmentResponse;
 import com.example.reservation.common.ErrorCode;
 import com.example.reservation.domain.entity.Appointment;
+import com.example.reservation.domain.entity.AppointmentLog;
 import com.example.reservation.domain.entity.MeetingRoom;
 import com.example.reservation.domain.enums.AppointmentStatus;
 import com.example.reservation.exception.BusinessException;
+import com.example.reservation.mapper.AppointmentLogMapper;
 import com.example.reservation.mapper.AppointmentMapper;
 import com.example.reservation.mapper.MeetingRoomMapper;
 import com.example.reservation.meetingroom.dto.PageResponse;
@@ -32,14 +34,17 @@ public class AppointmentService {
     private static final long APPOINTMENT_LOCK_LEASE_SECONDS = 10;
 
     private final AppointmentMapper appointmentMapper;
+    private final AppointmentLogMapper appointmentLogMapper;
     private final MeetingRoomMapper meetingRoomMapper;
     private final RedissonClient redissonClient;
 
     public AppointmentService(
             AppointmentMapper appointmentMapper,
+            AppointmentLogMapper appointmentLogMapper,
             MeetingRoomMapper meetingRoomMapper,
             RedissonClient redissonClient) {
         this.appointmentMapper = appointmentMapper;
+        this.appointmentLogMapper = appointmentLogMapper;
         this.meetingRoomMapper = meetingRoomMapper;
         this.redissonClient = redissonClient;
     }
@@ -87,6 +92,7 @@ public class AppointmentService {
         appointment.setCreatedAt(now);
         appointment.setUpdatedAt(now);
         appointmentMapper.insert(appointment);
+        createStatusLog(appointment, null, AppointmentStatus.PENDING, currentUser.userId(), "create appointment");
         return AppointmentResponse.from(appointment);
     }
 
@@ -120,7 +126,7 @@ public class AppointmentService {
     }
 
     @Transactional
-    public AppointmentResponse approve(Long id) {
+    public AppointmentResponse approve(Long id, JwtUser currentUser) {
         Appointment appointment = findById(id);
         ensurePending(appointment);
         ensureNoTimeConflict(
@@ -133,17 +139,29 @@ public class AppointmentService {
         appointment.setCancelReason(null);
         appointment.setUpdatedAt(LocalDateTime.now());
         appointmentMapper.updateById(appointment);
+        createStatusLog(
+                appointment,
+                AppointmentStatus.PENDING,
+                AppointmentStatus.APPROVED,
+                currentUser.userId(),
+                "approve appointment");
         return AppointmentResponse.from(appointment);
     }
 
     @Transactional
-    public AppointmentResponse reject(Long id, AppointmentRejectRequest request) {
+    public AppointmentResponse reject(Long id, AppointmentRejectRequest request, JwtUser currentUser) {
         Appointment appointment = findById(id);
         ensurePending(appointment);
         appointment.setStatus(AppointmentStatus.REJECTED);
         appointment.setRejectReason(request.rejectReason());
         appointment.setUpdatedAt(LocalDateTime.now());
         appointmentMapper.updateById(appointment);
+        createStatusLog(
+                appointment,
+                AppointmentStatus.PENDING,
+                AppointmentStatus.REJECTED,
+                currentUser.userId(),
+                request.rejectReason());
         return AppointmentResponse.from(appointment);
     }
 
@@ -155,10 +173,12 @@ public class AppointmentService {
                 && appointment.getStatus() != AppointmentStatus.APPROVED) {
             throw new BusinessException(ErrorCode.CONFLICT, "only pending or approved appointments can be cancelled");
         }
+        AppointmentStatus oldStatus = appointment.getStatus();
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.setCancelReason(request.cancelReason());
         appointment.setUpdatedAt(LocalDateTime.now());
         appointmentMapper.updateById(appointment);
+        createStatusLog(appointment, oldStatus, AppointmentStatus.CANCELLED, currentUser.userId(), request.cancelReason());
     }
 
     private Appointment findById(Long id) {
@@ -201,6 +221,24 @@ public class AppointmentService {
         if (!appointment.getUserId().equals(currentUser.userId()) && !hasRole(currentUser, "ROLE_ADMIN")) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "appointment is not accessible");
         }
+    }
+
+    private void createStatusLog(
+            Appointment appointment,
+            AppointmentStatus oldStatus,
+            AppointmentStatus newStatus,
+            Long operatorId,
+            String remark) {
+        LocalDateTime now = LocalDateTime.now();
+        AppointmentLog log = new AppointmentLog();
+        log.setAppointmentId(appointment.getId());
+        log.setOldStatus(oldStatus);
+        log.setNewStatus(newStatus);
+        log.setOperatorId(operatorId);
+        log.setRemark(remark);
+        log.setCreatedAt(now);
+        log.setUpdatedAt(now);
+        appointmentLogMapper.insert(log);
     }
 
     private boolean hasRole(JwtUser currentUser, String role) {
