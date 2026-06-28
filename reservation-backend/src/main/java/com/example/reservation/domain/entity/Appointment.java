@@ -1,8 +1,10 @@
 package com.example.reservation.domain.entity;
 
 import com.example.reservation.domain.enums.AppointmentStatus;
+import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 
+@TableName("appointment")
 public class Appointment extends BaseEntity {
 
     private Long userId;
@@ -78,4 +80,3 @@ public class Appointment extends BaseEntity {
         this.cancelReason = cancelReason;
     }
 }
-

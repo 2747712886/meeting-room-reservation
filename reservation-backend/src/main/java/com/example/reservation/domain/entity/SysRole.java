@@ -1,5 +1,8 @@
 package com.example.reservation.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.TableName;
+
+@TableName("sys_role")
 public class SysRole extends BaseEntity {
 
     private String roleCode;
@@ -21,4 +24,3 @@ public class SysRole extends BaseEntity {
         this.roleName = roleName;
     }
 }
-

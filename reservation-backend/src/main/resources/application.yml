@@ -37,3 +37,8 @@ springdoc:
 
 knife4j:
   enable: true
+
+app:
+  jwt:
+    secret: meeting-room-reservation-local-jwt-secret-2026
+    expiration-minutes: 120

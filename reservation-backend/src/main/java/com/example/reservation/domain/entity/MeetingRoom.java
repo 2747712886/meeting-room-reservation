@@ -1,5 +1,8 @@
 package com.example.reservation.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.TableName;
+
+@TableName("meeting_room")
 public class MeetingRoom extends BaseEntity {
 
     private String name;
@@ -57,4 +60,3 @@ public class MeetingRoom extends BaseEntity {
         this.enabled = enabled;
     }
 }
-

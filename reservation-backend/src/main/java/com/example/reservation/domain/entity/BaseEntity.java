@@ -1,9 +1,12 @@
 package com.example.reservation.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import java.time.LocalDateTime;
 
 public abstract class BaseEntity {
 
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -32,4 +35,3 @@ public abstract class BaseEntity {
         this.updatedAt = updatedAt;
     }
 }
-
