@@ -39,6 +39,7 @@ public class AppointmentService {
         if (room == null || !Boolean.TRUE.equals(room.getEnabled())) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "meeting room not found or disabled");
         }
+        ensureNoTimeConflict(request.roomId(), request.startTime(), request.endTime());
 
         LocalDateTime now = LocalDateTime.now();
         Appointment appointment = new Appointment();
@@ -107,6 +108,17 @@ public class AppointmentService {
         }
     }
 
+    private void ensureNoTimeConflict(Long roomId, LocalDateTime startTime, LocalDateTime endTime) {
+        Long conflictCount = appointmentMapper.selectCount(new LambdaQueryWrapper<Appointment>()
+                .eq(Appointment::getRoomId, roomId)
+                .in(Appointment::getStatus, AppointmentStatus.PENDING, AppointmentStatus.APPROVED)
+                .lt(Appointment::getStartTime, endTime)
+                .gt(Appointment::getEndTime, startTime));
+        if (conflictCount > 0) {
+            throw new BusinessException(ErrorCode.CONFLICT, "appointment time conflicts with existing reservation");
+        }
+    }
+
     private void ensureOwnerOrAdmin(Appointment appointment, JwtUser currentUser) {
         if (!appointment.getUserId().equals(currentUser.userId()) && !hasRole(currentUser, "ROLE_ADMIN")) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "appointment is not accessible");
@@ -120,4 +132,3 @@ public class AppointmentService {
                 .anyMatch(role::equals);
     }
 }
-
