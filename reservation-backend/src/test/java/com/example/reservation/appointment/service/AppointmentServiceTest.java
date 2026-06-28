@@ -8,9 +8,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.reservation.appointment.dto.AppointmentCreateRequest;
+import com.example.reservation.appointment.dto.AppointmentRejectRequest;
 import com.example.reservation.common.ErrorCode;
 import com.example.reservation.domain.entity.Appointment;
 import com.example.reservation.domain.entity.MeetingRoom;
+import com.example.reservation.domain.enums.AppointmentStatus;
 import com.example.reservation.exception.BusinessException;
 import com.example.reservation.mapper.AppointmentMapper;
 import com.example.reservation.mapper.MeetingRoomMapper;
@@ -115,6 +117,79 @@ class AppointmentServiceTest {
 
         verify(appointmentMapper, never()).selectCount(any());
         verify(appointmentMapper, never()).insert(any(Appointment.class));
+    }
+
+    @Test
+    void approvePendingAppointmentWhenNoConflictExists() {
+        AppointmentService service = new AppointmentService(appointmentMapper, meetingRoomMapper, redissonClient);
+        Appointment appointment = pendingAppointment();
+        when(appointmentMapper.selectById(100L)).thenReturn(appointment);
+        when(appointmentMapper.selectCount(any())).thenReturn(0L);
+
+        service.approve(100L);
+
+        assertThat(appointment.getStatus()).isEqualTo(AppointmentStatus.APPROVED);
+        assertThat(appointment.getRejectReason()).isNull();
+        assertThat(appointment.getCancelReason()).isNull();
+        verify(appointmentMapper).updateById(appointment);
+    }
+
+    @Test
+    void approveFailsWhenAppointmentHasConflict() {
+        AppointmentService service = new AppointmentService(appointmentMapper, meetingRoomMapper, redissonClient);
+        Appointment appointment = pendingAppointment();
+        when(appointmentMapper.selectById(100L)).thenReturn(appointment);
+        when(appointmentMapper.selectCount(any())).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.approve(100L))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
+                        .isEqualTo(ErrorCode.CONFLICT));
+
+        assertThat(appointment.getStatus()).isEqualTo(AppointmentStatus.PENDING);
+        verify(appointmentMapper, never()).updateById(any(Appointment.class));
+    }
+
+    @Test
+    void rejectPendingAppointmentStoresReason() {
+        AppointmentService service = new AppointmentService(appointmentMapper, meetingRoomMapper, redissonClient);
+        Appointment appointment = pendingAppointment();
+        when(appointmentMapper.selectById(100L)).thenReturn(appointment);
+
+        service.reject(100L, new AppointmentRejectRequest("time unavailable"));
+
+        assertThat(appointment.getStatus()).isEqualTo(AppointmentStatus.REJECTED);
+        assertThat(appointment.getRejectReason()).isEqualTo("time unavailable");
+        verify(appointmentMapper).updateById(appointment);
+    }
+
+    @Test
+    void rejectFailsWhenAppointmentIsNotPending() {
+        AppointmentService service = new AppointmentService(appointmentMapper, meetingRoomMapper, redissonClient);
+        Appointment appointment = pendingAppointment();
+        appointment.setStatus(AppointmentStatus.APPROVED);
+        when(appointmentMapper.selectById(100L)).thenReturn(appointment);
+
+        assertThatThrownBy(() -> service.reject(100L, new AppointmentRejectRequest("time unavailable")))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
+                        .isEqualTo(ErrorCode.CONFLICT));
+
+        verify(appointmentMapper, never()).updateById(any(Appointment.class));
+    }
+
+    private Appointment pendingAppointment() {
+        Appointment appointment = new Appointment();
+        appointment.setId(100L);
+        appointment.setUserId(1L);
+        appointment.setRoomId(10L);
+        appointment.setSubject("weekly sync");
+        appointment.setStartTime(LocalDateTime.of(2026, 6, 28, 9, 0));
+        appointment.setEndTime(LocalDateTime.of(2026, 6, 28, 10, 0));
+        appointment.setStatus(AppointmentStatus.PENDING);
+        appointment.setRejectReason("old reason");
+        appointment.setCancelReason("old cancel reason");
+        return appointment;
     }
 
     private JwtUser currentUser() {

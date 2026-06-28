@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.reservation.appointment.dto.AppointmentCancelRequest;
 import com.example.reservation.appointment.dto.AppointmentCreateRequest;
 import com.example.reservation.appointment.dto.AppointmentQueryRequest;
+import com.example.reservation.appointment.dto.AppointmentRejectRequest;
 import com.example.reservation.appointment.dto.AppointmentResponse;
 import com.example.reservation.common.ErrorCode;
 import com.example.reservation.domain.entity.Appointment;
@@ -119,6 +120,34 @@ public class AppointmentService {
     }
 
     @Transactional
+    public AppointmentResponse approve(Long id) {
+        Appointment appointment = findById(id);
+        ensurePending(appointment);
+        ensureNoTimeConflict(
+                appointment.getRoomId(),
+                appointment.getStartTime(),
+                appointment.getEndTime(),
+                appointment.getId());
+        appointment.setStatus(AppointmentStatus.APPROVED);
+        appointment.setRejectReason(null);
+        appointment.setCancelReason(null);
+        appointment.setUpdatedAt(LocalDateTime.now());
+        appointmentMapper.updateById(appointment);
+        return AppointmentResponse.from(appointment);
+    }
+
+    @Transactional
+    public AppointmentResponse reject(Long id, AppointmentRejectRequest request) {
+        Appointment appointment = findById(id);
+        ensurePending(appointment);
+        appointment.setStatus(AppointmentStatus.REJECTED);
+        appointment.setRejectReason(request.rejectReason());
+        appointment.setUpdatedAt(LocalDateTime.now());
+        appointmentMapper.updateById(appointment);
+        return AppointmentResponse.from(appointment);
+    }
+
+    @Transactional
     public void cancel(Long id, AppointmentCancelRequest request, JwtUser currentUser) {
         Appointment appointment = findById(id);
         ensureOwnerOrAdmin(appointment, currentUser);
@@ -147,13 +176,24 @@ public class AppointmentService {
     }
 
     private void ensureNoTimeConflict(Long roomId, LocalDateTime startTime, LocalDateTime endTime) {
+        ensureNoTimeConflict(roomId, startTime, endTime, null);
+    }
+
+    private void ensureNoTimeConflict(Long roomId, LocalDateTime startTime, LocalDateTime endTime, Long excludedId) {
         Long conflictCount = appointmentMapper.selectCount(new LambdaQueryWrapper<Appointment>()
+                .ne(excludedId != null, Appointment::getId, excludedId)
                 .eq(Appointment::getRoomId, roomId)
                 .in(Appointment::getStatus, AppointmentStatus.PENDING, AppointmentStatus.APPROVED)
                 .lt(Appointment::getStartTime, endTime)
                 .gt(Appointment::getEndTime, startTime));
         if (conflictCount > 0) {
             throw new BusinessException(ErrorCode.CONFLICT, "appointment time conflicts with existing reservation");
+        }
+    }
+
+    private void ensurePending(Appointment appointment) {
+        if (appointment.getStatus() != AppointmentStatus.PENDING) {
+            throw new BusinessException(ErrorCode.CONFLICT, "only pending appointments can be processed");
         }
     }
 

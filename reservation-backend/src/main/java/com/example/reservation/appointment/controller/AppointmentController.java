@@ -3,12 +3,14 @@ package com.example.reservation.appointment.controller;
 import com.example.reservation.appointment.dto.AppointmentCancelRequest;
 import com.example.reservation.appointment.dto.AppointmentCreateRequest;
 import com.example.reservation.appointment.dto.AppointmentQueryRequest;
+import com.example.reservation.appointment.dto.AppointmentRejectRequest;
 import com.example.reservation.appointment.dto.AppointmentResponse;
 import com.example.reservation.appointment.service.AppointmentService;
 import com.example.reservation.common.ApiResponse;
 import com.example.reservation.meetingroom.dto.PageResponse;
 import com.example.reservation.security.JwtUser;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -61,5 +63,19 @@ public class AppointmentController {
         appointmentService.cancel(id, request, currentUser);
         return ApiResponse.success();
     }
-}
 
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<AppointmentResponse> approve(@PathVariable Long id) {
+        return ApiResponse.success(appointmentService.approve(id));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<AppointmentResponse> reject(
+            @PathVariable Long id,
+            @Valid @RequestBody AppointmentRejectRequest request
+    ) {
+        return ApiResponse.success(appointmentService.reject(id, request));
+    }
+}
