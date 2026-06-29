@@ -1,17 +1,23 @@
 server:
   port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 spring:
   application:
     name: reservation-backend
   datasource:
-    url: jdbc:mysql://localhost:3307/meeting_room_reservation?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3307/meeting_room_reservation?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_0900_ai_ci&serverTimezone=Asia/Shanghai
     username: reservation
     password: reservation
     driver-class-name: com.mysql.cj.jdbc.Driver
   sql:
     init:
       mode: always
+      encoding: UTF-8
       schema-locations: classpath:db/schema.sql
       data-locations: classpath:db/data.sql
   data:

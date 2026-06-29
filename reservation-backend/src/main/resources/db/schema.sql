@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     UNIQUE KEY uk_sys_user_username (username)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS sys_role (
     id BIGINT PRIMARY KEY,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS sys_role (
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     UNIQUE KEY uk_sys_role_code (role_code)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS sys_user_role (
     id BIGINT PRIMARY KEY,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
     UNIQUE KEY uk_sys_user_role_user_role (user_id, role_id),
     KEY idx_sys_user_role_user_id (user_id),
     KEY idx_sys_user_role_role_id (role_id)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS meeting_room (
     id BIGINT PRIMARY KEY,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS meeting_room (
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     KEY idx_meeting_room_enabled (enabled)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS room_schedule (
     id BIGINT PRIMARY KEY,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS room_schedule (
     updated_at DATETIME NOT NULL,
     UNIQUE KEY uk_room_schedule_room_date (room_id, available_date),
     KEY idx_room_schedule_date (available_date)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS room_block_time (
     id BIGINT PRIMARY KEY,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS room_block_time (
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     KEY idx_room_block_time_room_date (room_id, block_date)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS appointment (
     id BIGINT PRIMARY KEY,
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS appointment (
     KEY idx_appointment_room_time (room_id, start_time, end_time),
     KEY idx_appointment_user_created (user_id, created_at),
     KEY idx_appointment_status_created (status, created_at)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS appointment_log (
     id BIGINT PRIMARY KEY,
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS appointment_log (
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     KEY idx_appointment_log_appointment_id (appointment_id)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS notification (
     id BIGINT PRIMARY KEY,
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS notification (
     updated_at DATETIME NOT NULL,
     KEY idx_notification_user_read (user_id, read_flag),
     KEY idx_notification_appointment_id (appointment_id)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS operation_log (
     id BIGINT PRIMARY KEY,
@@ -124,5 +124,4 @@ CREATE TABLE IF NOT EXISTS operation_log (
     updated_at DATETIME NOT NULL,
     KEY idx_operation_log_user_created (user_id, created_at),
     KEY idx_operation_log_type_created (operation_type, created_at)
-);
-
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
