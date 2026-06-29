@@ -258,14 +258,16 @@ type PageResponse<T> = {
   records: T[]
 }
 
+type Id = string
+
 type CurrentUser = {
-  userId: number
+  userId: Id
   username: string
   roles: string[]
 }
 
 type MeetingRoom = {
-  id: number
+  id: Id
   name: string
   floor: string
   capacity: number
@@ -275,9 +277,9 @@ type MeetingRoom = {
 }
 
 type Appointment = {
-  id: number
-  userId: number
-  roomId: number
+  id: Id
+  userId: Id
+  roomId: Id
   subject: string
   startTime: string
   endTime: string
@@ -287,8 +289,8 @@ type Appointment = {
 }
 
 type NotificationItem = {
-  id: number
-  appointmentId?: number
+  id: Id
+  appointmentId?: Id
   eventType: string
   title: string
   content: string
@@ -310,7 +312,7 @@ const loginForm = reactive({
 })
 
 const appointmentForm = reactive({
-  roomId: undefined as number | undefined,
+  roomId: undefined as Id | undefined,
   subject: '',
   startTime: '',
   endTime: ''
@@ -354,7 +356,7 @@ async function login() {
     const data = await request<{
       accessToken: string
       username: string
-      userId: number
+      userId: Id
       roles: string[]
     }>(api.post('/api/auth/login', loginForm))
     token.value = data.accessToken
@@ -431,7 +433,7 @@ async function createAppointment() {
   }
 }
 
-async function cancelAppointment(id: number) {
+async function cancelAppointment(id: Id) {
   const { value } = await ElMessageBox.prompt('请输入取消原因', '取消预约', {
     inputPlaceholder: '例如：会议改期',
     confirmButtonText: '确认取消',
@@ -442,13 +444,13 @@ async function cancelAppointment(id: number) {
   await Promise.all([loadMyAppointments(), loadNotifications()])
 }
 
-async function approveAppointment(id: number) {
+async function approveAppointment(id: Id) {
   await request<Appointment>(api.post(`/api/appointments/${id}/approve`))
   ElMessage.success('已审批通过')
   await Promise.all([loadPendingAppointments(), loadMyAppointments(), loadNotifications()])
 }
 
-async function rejectAppointment(id: number) {
+async function rejectAppointment(id: Id) {
   const { value } = await ElMessageBox.prompt('请输入拒绝原因', '拒绝预约', {
     inputPlaceholder: '例如：时间段不可用',
     confirmButtonText: '确认拒绝',
@@ -459,7 +461,7 @@ async function rejectAppointment(id: number) {
   await Promise.all([loadPendingAppointments(), loadMyAppointments(), loadNotifications()])
 }
 
-async function markNotificationRead(id: number) {
+async function markNotificationRead(id: Id) {
   await request<void>(api.post(`/api/notifications/${id}/read`))
   await loadNotifications()
 }
@@ -469,7 +471,7 @@ async function markAllNotificationsRead() {
   await loadNotifications()
 }
 
-function roomName(roomId: number) {
+function roomName(roomId: Id) {
   return rooms.value.find((room) => room.id === roomId)?.name || `#${roomId}`
 }
 
